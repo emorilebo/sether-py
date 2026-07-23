@@ -71,7 +71,15 @@ _NAME_LABEL_INTL_RE = re.compile(
     re.IGNORECASE,
 )
 
-_NAME_LABELS = (_NAME_LABEL_RE, _NAME_LABEL_INTL_RE)
+# JSON / structured-data key, e.g. ``"customer_name": "Amara Okafor"``. The key
+# contains the label word (snake/kebab/camel/spaced); the value validator
+# (uppercase-first + common-word denylist) rejects non-names, so a loose key
+# match is safe. Requires the ``"key":`` shape, so it never fires on prose.
+_NAME_KEY_RE = re.compile(
+    r'"[A-Za-z0-9_ -]{0,40}name[A-Za-z0-9_ -]{0,20}"\s*:\s*"?', re.IGNORECASE
+)
+
+_NAME_LABELS = (_NAME_LABEL_RE, _NAME_LABEL_INTL_RE, _NAME_KEY_RE)
 
 _NAME_COMMON_WORDS = frozenset({
     "the", "and", "is", "of", "a", "an", "our", "your", "my", "their", "unknown",
@@ -171,7 +179,13 @@ _DOB_LABEL_INTL_RE = re.compile(
     re.IGNORECASE,
 )
 
-_DOB_LABELS = (_DOB_LABEL_RE, _DOB_LABEL_INTL_RE)
+# JSON key, e.g. ``"date_of_birth": "1990-05-12"`` / ``"dob": "..."``. Calendar +
+# plausibility validation on the value keeps false positives out.
+_DOB_KEY_RE = re.compile(
+    r'"[A-Za-z0-9_ -]{0,40}(?:dob|birth)[A-Za-z0-9_ -]{0,20}"\s*:\s*"?', re.IGNORECASE
+)
+
+_DOB_LABELS = (_DOB_LABEL_RE, _DOB_LABEL_INTL_RE, _DOB_KEY_RE)
 
 _MONTHS = (
     "jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|"
@@ -279,7 +293,13 @@ _PASSPORT_LABEL_INTL_RE = re.compile(
     re.IGNORECASE,
 )
 
-_PASSPORT_LABELS = (_PASSPORT_LABEL_RE, _PASSPORT_LABEL_INTL_RE)
+# JSON key, e.g. ``"passport_number": "A1234567"``. The value must be 6-9
+# alphanumerics containing a digit, so a loose key match cannot over-fire.
+_PASSPORT_KEY_RE = re.compile(
+    r'"[A-Za-z0-9_ -]{0,40}passport[A-Za-z0-9_ -]{0,20}"\s*:\s*"?', re.IGNORECASE
+)
+
+_PASSPORT_LABELS = (_PASSPORT_LABEL_RE, _PASSPORT_LABEL_INTL_RE, _PASSPORT_KEY_RE)
 
 _PASSPORT_VALUE_RE = re.compile(r"^[A-Za-z0-9]{6,9}\b", re.ASCII)
 _HAS_DIGIT_RE = re.compile(r"\d", re.ASCII)
@@ -328,7 +348,13 @@ _ADDRESS_LABEL_INTL_RE = re.compile(
     re.IGNORECASE,
 )
 
-_ADDRESS_LABELS = (_ADDRESS_LABEL_RE, _ADDRESS_LABEL_INTL_RE)
+# JSON key, e.g. ``"billing_address": "12 Marina Road, Lagos"``. The value
+# capture below stops at a double-quote, so it lifts the JSON string cleanly.
+_ADDRESS_KEY_RE = re.compile(
+    r'"[A-Za-z0-9_ -]{0,40}addr[A-Za-z0-9_ -]{0,20}"\s*:\s*"?', re.IGNORECASE
+)
+
+_ADDRESS_LABELS = (_ADDRESS_LABEL_RE, _ADDRESS_LABEL_INTL_RE, _ADDRESS_KEY_RE)
 
 _STREET_SUFFIX_RE = re.compile(
     r"\b(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|"
@@ -357,7 +383,14 @@ class _AddressDetector:
             while start < n and (text[start] == " " or text[start] == "\t"):
                 start += 1
             end = start
-            while end < n and text[end] != "\n" and end - start < _MAX_ADDRESS_LEN:
+            # Stop at end-of-line OR a double-quote (the JSON string delimiter),
+            # so a labelled value lifts cleanly from both prose and ``"addr": "…"``.
+            while (
+                end < n
+                and text[end] != "\n"
+                and text[end] != '"'
+                and end - start < _MAX_ADDRESS_LEN
+            ):
                 end += 1
             value = _TRAILING_WS_RE.sub("", text[start:end])
             if len(value) >= 5 and _HAS_DIGIT_OR_COMMA_RE.search(value):

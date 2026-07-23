@@ -81,3 +81,41 @@ def test_address_standalone_street():
 
 def test_address_uk_postcode():
     assert "SW1A 1AA" in _values(address_detector, "postcode SW1A 1AA here")
+
+
+# --- JSON / structured-data keys (0.2.0) ---
+
+
+def test_json_key_name():
+    assert _values(name_detector, '{ "customer_name": "Amara Okafor" }') == ["Amara Okafor"]
+
+
+def test_json_key_name_variants():
+    assert _values(name_detector, '"full_name": "John Smith"') == ["John Smith"]
+    assert _values(name_detector, '"firstName": "Marie Curie"') == ["Marie Curie"]
+
+
+def test_json_key_name_no_false_positive():
+    assert _values(name_detector, '"filename": "report.pdf"') == []
+    assert _values(name_detector, '"username": "amara_dev"') == []
+
+
+def test_json_key_dob():
+    assert _values(dob_detector, '"date_of_birth": "1990-05-12"') == ["1990-05-12"]
+    assert _values(dob_detector, '"dob": "1985-01-30"') == ["1985-01-30"]
+    assert _values(dob_detector, '"birth_place": "Lagos"') == []
+
+
+def test_json_key_passport():
+    assert _values(passport_detector, '"passport_number": "A1234567"') == ["A1234567"]
+    assert _values(passport_detector, '"passport": "VALIDONLY"') == []
+
+
+def test_json_key_address_lifts_clean():
+    vals = _values(address_detector, '"billing_address": "12 Marina Road, Lagos",')
+    assert "12 Marina Road, Lagos" in vals
+    assert all('"' not in v for v in vals)
+
+
+def test_json_key_prose_still_ignored():
+    assert _values(name_detector, "the name is unknown right now") == []

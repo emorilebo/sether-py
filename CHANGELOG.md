@@ -3,6 +3,18 @@
 All notable changes to the Python `sether` package are documented here. This
 package follows [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - 2026-07-16
+
+### Added
+
+- **JSON / structured-data key detection** for the identity pack. `name_detector`,
+  `dob_detector`, `passport_detector`, and `address_detector` now also fire on a
+  JSON-style key whose name contains the class word, e.g. `"customer_name": "..."`,
+  `"date_of_birth": "..."`, `"passport_number": "..."`, `"billing_address": "..."`
+  (snake/kebab/camel/spaced). Value validators reject non-PII, so a loose key match
+  cannot over-fire; the `"key":` shape means prose is unaffected. Mirrors the
+  TypeScript `@raeven-co/sether` 0.6.0 change. Opt-in `identity_detectors` only.
+
 ## [0.1.1] - 2026-07-03
 
 ### Added
