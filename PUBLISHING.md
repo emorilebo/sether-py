@@ -94,7 +94,7 @@ directly, so there is no token to store or rotate. The workflow is already in
 cd raeven/sether-py
 git init && git add -A && git commit -m "Sether Python 0.1.0"
 git branch -M main
-git remote add origin git@github.com:raeven-co/sether-py.git   # create this repo first
+git remote add origin git@github.com:emorilebo/sether-py.git   # create this repo first
 git push -u origin main
 ```
 
@@ -106,10 +106,14 @@ the repo/path values in step 3b accordingly.)
 PyPI → your account → **Publishing** → "Add a pending publisher"
 (or, after the project exists, the project's *Publishing* tab):
 
+(The owner is the GitHub account that actually holds the repo -- `emorilebo`,
+NOT `raeven-co`. Getting this wrong is exactly why the v0.2.0 and v0.3.0 CI
+publishes failed at the OIDC step.)
+
 | Field | Value |
 | --- | --- |
 | PyPI Project Name | `sether` |
-| Owner | `raeven-co` |
+| Owner | `emorilebo` |
 | Repository name | `sether-py` |
 | Workflow name | `publish.yml` |
 | Environment name | `pypi` |
