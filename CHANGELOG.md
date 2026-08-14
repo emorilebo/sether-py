@@ -3,6 +3,41 @@
 All notable changes to the Python `sether` package are documented here. This
 package follows [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-08-13
+
+Mirrors TypeScript `@raeven-co/sether` 0.7.0 — detection-gap fixes from a
+Sether Shield field report, plus the new alias engine.
+
+### Added
+
+- **Alias engine** (`alias_value`, `suggest_aliases`, `shape_alias`,
+  `AliasVault`). Replace a detected value with a realistic decoy instead of a
+  mask — names become John Doe-style names, phones become officially-fictional
+  numbers (US 555-01XX, Ofcom 07700 900XXX), emails move to RFC 2606 domains,
+  cards are Luhn-valid, API keys keep their vendor prefix with a scrambled
+  tail — then reverse it later with `AliasVault.restore()`, including on AI
+  replies that echo the decoy. Same-original → same-alias within a vault;
+  aliases are vault-unique by construction. Randomness injectable for tests.
+- **`create_multi_region_phone_detector(countries)`** — one PHONE detector
+  covering several regions' national formats at once, de-duplicated by span.
+- **Label-anchored secrets** (`labeled_api_key_detector`,
+  `labeled_password_detector`) — catches `my api key is AbC123…` (below the
+  entropy floor, no vendor prefix) and `password: hunter2butlonger`, with
+  validators that keep "api key management" / "password is required" clean.
+  Both included in `secrets_detectors`.
+
+### Fixed
+
+- DOB: `born on 14/03/1995` now anchors (previously only bare `born`).
+- Address: conversational anchors (`I live at …`, `deliver to …`) and
+  Commonwealth street suffixes (crescent/cres, gardens/gdns, grove, mews,
+  estate); verb-shaped suffixes deliberately excluded from standalone
+  detection.
+- Address false positive: `my email address is x@y.com, call 0806…` was
+  detected as one giant ADDRESS match swallowing the whole line — non-postal
+  "address" compounds (email/IP/MAC/wallet/server/…) no longer anchor the
+  detector.
+
 ## [0.2.0] - 2026-07-16
 
 ### Added

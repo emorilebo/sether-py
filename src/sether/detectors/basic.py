@@ -283,6 +283,51 @@ def create_phone_detector(default_country: Optional[str] = None) -> _PhoneDetect
 phone_detector = create_phone_detector()
 
 
+class _MultiRegionPhoneDetector:
+    type = "PHONE"
+
+    def __init__(self, countries: "List[str]") -> None:
+        # De-dupe defensively -- duplicate passes are pure waste.
+        seen = set()
+        self._countries: List[Optional[str]] = [None]
+        for c in countries:
+            if c not in seen:
+                seen.add(c)
+                self._countries.append(c)
+
+    def detect(self, text: str) -> List[DetectorMatch]:
+        if _phonenumbers is None:  # pragma: no cover - import guard
+            raise ImportError(
+                "sether phone detection requires the 'phonenumbers' package. "
+                "Install it with: pip install phonenumbers"
+            )
+        seen_spans = set()
+        matches: List[DetectorMatch] = []
+        for country in self._countries:
+            for found in _phonenumbers.PhoneNumberMatcher(text, country):  # type: ignore[attr-defined]
+                start = found.start
+                end = start + len(found.raw_string)
+                key = (start, end)
+                if key in seen_spans:
+                    continue
+                seen_spans.add(key)
+                matches.append(DetectorMatch(start, end, text[start:end]))
+        matches.sort(key=lambda m: (m.start, -(m.end - m.start)))
+        return matches
+
+
+def create_multi_region_phone_detector(countries: "List[str]") -> _MultiRegionPhoneDetector:
+    """Build a PHONE detector covering several regions' NATIONAL formats at once.
+
+    ``create_multi_region_phone_detector(["US", "GB", "NG"])`` recognises
+    "(415) 555-2671", "07911 123456", and "0806 578 6535" in the same text,
+    de-duplicated by span (international ``+...`` numbers are found by every
+    pass; the no-region pass runs first and wins). Mirrors the TS
+    ``createMultiRegionPhoneDetector`` added in 0.7.0.
+    """
+    return _MultiRegionPhoneDetector(countries)
+
+
 basic_detectors = (
     email_detector,
     credit_card_detector,
@@ -304,5 +349,6 @@ __all__ = [
     "iban_detector",
     "phone_detector",
     "create_phone_detector",
+    "create_multi_region_phone_detector",
     "basic_detectors",
 ]

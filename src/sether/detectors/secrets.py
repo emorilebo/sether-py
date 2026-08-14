@@ -170,6 +170,85 @@ class _HighEntropyDetector:
 high_entropy_detector = _HighEntropyDetector()
 
 
+# Label-anchored API key -- catches keys with NO published prefix and below the
+# high-entropy length floor, the way users actually paste them into prompts:
+#   "my api key is AbC123xYz789QwE456"
+#   "access_token: 9f8e7d6c5b4a3928"
+# The label does the heavy lifting; the value validator (12+ chars, must mix
+# letters and digits) keeps prose like "api key management" from matching.
+# New in 0.3.0 (mirrors TS 0.7.0).
+_LABELED_KEY_RE = re.compile(
+    r"\b(?:api|access|secret|client|auth|app|service|encryption|signing|refresh|bearer)"
+    r"[ _-]?(?:key|token|secret)s?\b\s*(?:is|was|[:=])?\s*[\"'`]?"
+    r"([A-Za-z0-9][A-Za-z0-9._-]{10,127})",
+    re.IGNORECASE,
+)
+
+_HAS_LETTER_RE = re.compile(r"[A-Za-z]")
+_HAS_DIGIT_RE = re.compile(r"\d")
+
+
+class _LabeledApiKeyDetector:
+    type = "API_KEY"
+
+    def detect(self, text: str) -> List[DetectorMatch]:
+        matches: List[DetectorMatch] = []
+        for m in _LABELED_KEY_RE.finditer(text):
+            value = m.group(1)
+            # Key-shaped only: needs at least one letter AND one digit.
+            if not _HAS_LETTER_RE.search(value) or not _HAS_DIGIT_RE.search(value):
+                continue
+            start = m.end() - len(value)
+            matches.append(DetectorMatch(start, start + len(value), value))
+        return matches
+
+
+labeled_api_key_detector = _LabeledApiKeyDetector()
+
+
+# Label-anchored password -- "my password is hunter2butlonger", "password: X".
+# The separator (is/was/:/=) is MANDATORY, and a denylist rejects the common
+# non-secret continuations ("password is required"). New in 0.3.0.
+_LABELED_PASSWORD_RE = re.compile(
+    r"\b(?:password|passwd|passphrase|pwd)\b\s*(?:is|was|[:=])\s*[\"'`]?([^\s\"'`]{4,64})",
+    re.IGNORECASE,
+)
+
+_TRAILING_PUNCT_RE = re.compile(r"[.,;:!?)\]}]+$")
+
+_PASSWORD_NON_SECRETS = frozenset(
+    (
+        "required", "needed", "wrong", "incorrect", "invalid", "missing", "expired",
+        "reset", "secure", "insecure", "weak", "strong", "correct", "empty", "blank",
+        "optional", "protected", "disabled", "enabled", "hidden", "visible", "stored",
+        "hashed", "encrypted", "plaintext", "leaked", "compromised", "changed",
+        "forgotten", "unknown", "gone", "safe", "saved", "set", "unset", "case",
+        "the", "a", "an", "my", "your", "our", "their", "not", "now", "still", "too",
+        "also", "always", "never", "sometimes", "already", "again", "fine", "okay",
+    )
+)
+
+
+class _LabeledPasswordDetector:
+    type = "PASSWORD"
+
+    def detect(self, text: str) -> List[DetectorMatch]:
+        matches: List[DetectorMatch] = []
+        for m in _LABELED_PASSWORD_RE.finditer(text):
+            raw = m.group(1)
+            value = _TRAILING_PUNCT_RE.sub("", raw)
+            if len(value) < 4:
+                continue
+            if value.lower() in _PASSWORD_NON_SECRETS:
+                continue
+            start = m.end() - len(raw)
+            matches.append(DetectorMatch(start, start + len(value), value))
+        return matches
+
+
+labeled_password_detector = _LabeledPasswordDetector()
+
+
 secrets_detectors = (
     aws_access_key_detector,
     openai_key_detector,
@@ -179,6 +258,8 @@ secrets_detectors = (
     stripe_key_detector,
     jwt_detector,
     high_entropy_detector,
+    labeled_api_key_detector,
+    labeled_password_detector,
 )
 
 
@@ -191,5 +272,7 @@ __all__ = [
     "stripe_key_detector",
     "jwt_detector",
     "high_entropy_detector",
+    "labeled_api_key_detector",
+    "labeled_password_detector",
     "secrets_detectors",
 ]

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .basic import (
     basic_detectors,
+    create_multi_region_phone_detector,
     create_phone_detector,
     credit_card_detector,
     email_detector,
@@ -25,6 +26,8 @@ from .secrets import (
     github_pat_detector,
     high_entropy_detector,
     jwt_detector,
+    labeled_api_key_detector,
+    labeled_password_detector,
     openai_key_detector,
     secrets_detectors,
     slack_token_detector,
@@ -45,9 +48,12 @@ __all__ = [
     "iban_detector",
     "phone_detector",
     "create_phone_detector",
+    "create_multi_region_phone_detector",
     "is_ipv6_address",
     # secrets
     "secrets_detectors",
+    "labeled_api_key_detector",
+    "labeled_password_detector",
     "aws_access_key_detector",
     "openai_key_detector",
     "anthropic_key_detector",

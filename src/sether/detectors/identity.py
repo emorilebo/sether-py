@@ -167,7 +167,7 @@ name_detector = _NameDetector()
 
 _DOB_LABEL_RE = re.compile(
     r"\b(?:date\s+of\s+birth|date\s+de\s+naissance|fecha\s+de\s+nacimiento|"
-    r"data\s+de\s+nascimento|geburtsdatum|geboortedatum|d\.?o\.?b\.?|birth\s?date|born)"
+    r"data\s+de\s+nascimento|geburtsdatum|geboortedatum|d\.?o\.?b\.?|birth\s?date|born(?: on)?)"
     r"\b[\s:=-]{0,3}",
     re.IGNORECASE,
 )
@@ -354,11 +354,35 @@ _ADDRESS_KEY_RE = re.compile(
     r'"[A-Za-z0-9_ -]{0,40}addr[A-Za-z0-9_ -]{0,20}"\s*:\s*"?', re.IGNORECASE
 )
 
-_ADDRESS_LABELS = (_ADDRESS_LABEL_RE, _ADDRESS_LABEL_INTL_RE, _ADDRESS_KEY_RE)
+# Conversational anchors, e.g. "I live at 24 Adetokunbo Ademola Crescent".
+# New in 0.3.0 (mirrors TS 0.7.0).
+_ADDRESS_PROSE_RE = re.compile(
+    r"\b(?:liv(?:e|es|ing)\s+at|located\s+at|resid(?:e|es|ing)\s+at|based\s+at|"
+    r"deliver(?:y)?\s+to|ship(?:ped|ping)?\s+to|stay(?:s|ing)?\s+at)\b\s*",
+    re.IGNORECASE,
+)
 
+# The bare word "address" also appears in NON-POSTAL compounds -- "email
+# address", "IP address", "wallet address" -- where the line's other content
+# would otherwise pass validation and swallow everything to end-of-line as one
+# giant false match. Reject the label when preceded by one of these.
+# Fixed in 0.3.0 (mirrors TS 0.7.0).
+_NON_POSTAL_QUALIFIER_RE = re.compile(
+    r"(?:e-?mail|ip|i\.p\.|mac|wallet|btc|eth|crypto|contract|server|host|url|web|memory)"
+    r"[ \t_-]{0,3}$",
+    re.IGNORECASE,
+)
+
+_ADDRESS_INDIRECT_LABELS = (_ADDRESS_LABEL_INTL_RE, _ADDRESS_KEY_RE, _ADDRESS_PROSE_RE)
+
+# crescent/cres, gardens/gdns, grove, mews, estate: common UK/Commonwealth
+# (incl. Nigerian) street suffixes -- added in 0.3.0. Verb-shaped suffixes
+# ("close", "walk", "rise") are deliberately excluded from standalone
+# detection; the prose/label anchors above still catch those addresses.
 _STREET_SUFFIX_RE = re.compile(
     r"\b(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|"
-    r"way|place|pl|terrace|ter|square|sq|highway|hwy|parkway|pkwy)\b\.?",
+    r"way|place|pl|terrace|ter|square|sq|highway|hwy|parkway|pkwy|"
+    r"crescent|cres|gardens|gdns|grove|mews|estate)\b\.?",
     re.IGNORECASE,
 )
 
@@ -396,7 +420,14 @@ class _AddressDetector:
             if len(value) >= 5 and _HAS_DIGIT_OR_COMMA_RE.search(value):
                 matches.append(DetectorMatch(start, start + len(value), value))
 
-        _each_label_match(text, _ADDRESS_LABELS, cb)
+        # The main Latin label runs in its own loop so the non-postal qualifier
+        # check can see what precedes the label ("email address", "IP address").
+        for lm in _ADDRESS_LABEL_RE.finditer(text):
+            before = text[max(0, lm.start() - 16):lm.start()]
+            if _NON_POSTAL_QUALIFIER_RE.search(before):
+                continue
+            cb(lm.end())
+        _each_label_match(text, _ADDRESS_INDIRECT_LABELS, cb)
 
         # (b) Standalone street line: street suffix preceded by a house number.
         for s in _STREET_SUFFIX_RE.finditer(text):

@@ -17,7 +17,7 @@ Named for the Hebrew *sether* -- *the hiding place*. Psalm 32:7.
 
 from __future__ import annotations
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 from .audit import (
     DEFAULT_REGULATION_MAPPINGS,
@@ -27,6 +27,7 @@ from .audit import (
     MemoryAuditSink,
     RegulationMapping,
 )
+from .alias import AliasEntry, AliasVault, alias_value, shape_alias, suggest_aliases
 from .core import Sether
 from .detectors import (
     Detector,
@@ -35,6 +36,7 @@ from .detectors import (
     anthropic_key_detector,
     aws_access_key_detector,
     basic_detectors,
+    create_multi_region_phone_detector,
     create_phone_detector,
     credit_card_detector,
     dob_detector,
@@ -46,6 +48,8 @@ from .detectors import (
     ipv4_detector,
     ipv6_detector,
     jwt_detector,
+    labeled_api_key_detector,
+    labeled_password_detector,
     name_detector,
     openai_key_detector,
     passport_detector,
@@ -113,6 +117,14 @@ __all__ = [
     "phone_detector",
     "create_phone_detector",
     "secrets_detectors",
+    "labeled_api_key_detector",
+    "labeled_password_detector",
+    "create_multi_region_phone_detector",
+    "AliasEntry",
+    "AliasVault",
+    "alias_value",
+    "shape_alias",
+    "suggest_aliases",
     "aws_access_key_detector",
     "openai_key_detector",
     "anthropic_key_detector",

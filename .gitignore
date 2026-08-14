@@ -13,3 +13,4 @@ sether-venv/
 .coverage
 htmlcov/
 .DS_Store
+.venv-test/
