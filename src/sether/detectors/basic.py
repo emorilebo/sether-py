@@ -320,7 +320,7 @@ def create_multi_region_phone_detector(countries: "List[str]") -> _MultiRegionPh
     """Build a PHONE detector covering several regions' NATIONAL formats at once.
 
     ``create_multi_region_phone_detector(["US", "GB", "NG"])`` recognises
-    "(415) 555-2671", "07911 123456", and "0806 578 6535" in the same text,
+    "(415) 555-2671", "07911 123456", and "0801 234 5678" in the same text,
     de-duplicated by span (international ``+...`` numbers are found by every
     pass; the no-region pass runs first and wins). Mirrors the TS
     ``createMultiRegionPhoneDetector`` added in 0.7.0.

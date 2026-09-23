@@ -18,14 +18,14 @@ class TestMultiRegionPhone:
     detector = create_multi_region_phone_detector(["US", "NG", "GB"])
 
     def test_national_formats(self):
-        assert len(self.detector.detect("call me on 08065786535")) == 1
-        assert len(self.detector.detect("my number is 0806 578 6535")) == 1
+        assert len(self.detector.detect("call me on 08012345678")) == 1
+        assert len(self.detector.detect("my number is 0801 234 5678")) == 1
         assert len(self.detector.detect("call me at (415) 555-2671")) == 1
         assert len(self.detector.detect("my number is 415-555-2671")) == 1
         assert len(self.detector.detect("ring 07911 123456 today")) == 1
 
     def test_international_still_works(self):
-        assert len(self.detector.detect("reach me on +2348065786535")) == 1
+        assert len(self.detector.detect("reach me on +2348012345678")) == 1
 
     def test_deduplicates_across_passes(self):
         assert len(self.detector.detect("call +1 415 555 2671 now")) == 1
@@ -87,7 +87,7 @@ class TestAddressGaps:
     def test_non_postal_compounds_do_not_fire(self):
         assert (
             address_detector.detect(
-                "my email address is emory@gmail.com, call me on 08065786535. Regards, Godfrey"
+                "my email address is emory@gmail.com, call me on 08012345678. Regards, Godfrey"
             )
             == []
         )

@@ -51,14 +51,14 @@ class TestAliasValue:
         assert alias_value("PHONE", "+447911123456", rng).startswith("+44 7700 900")
 
     def test_ng_phone_stays_ng_shaped(self, rng):
-        alias = alias_value("PHONE", "+2348065786535", rng)
+        alias = alias_value("PHONE", "+2348012345678", rng)
         assert alias.startswith("+234 803 555 ")
         assert len(phone_detector.detect(alias)) == 1
 
     def test_national_unknown_region_keeps_trunk_prefix(self, rng):
-        alias = alias_value("PHONE", "0806 578 6535", rng)
+        alias = alias_value("PHONE", "0801 234 5678", rng)
         assert alias.startswith("08")
-        assert alias != "0806 578 6535"
+        assert alias != "0801 234 5678"
 
     def test_cc_luhn_valid_and_grouped(self, rng):
         alias = alias_value("CC", "4242 4242 4242 4242", rng)
@@ -129,7 +129,7 @@ class TestSuggestAliases:
 
     def test_every_builtin_type(self, rng):
         samples = [
-            ("EMAIL", "a@b.com"), ("PHONE", "+2348065786535"), ("CC", "4242424242424242"),
+            ("EMAIL", "a@b.com"), ("PHONE", "+2348012345678"), ("CC", "4242424242424242"),
             ("SSN", "123-45-6789"), ("IPV4", "1.2.3.4"), ("IPV6", "2001:db8::1"),
             ("IBAN", "GB82WEST12345698765432"), ("NAME", "Ada Obi"), ("DOB", "01/02/1990"),
             ("ADDRESS", "12 Marina Rd, Lagos"), ("PASSPORT", "A1234567"),
@@ -181,10 +181,10 @@ class TestAliasVault:
         vault = AliasVault()
         vault.set("Godfrey Lebo", "John Doe", "NAME")
         vault.set("emory@gmail.com", "jane.doe@example.org", "EMAIL")
-        vault.set("+2348065786535", "+234 803 555 1234", "PHONE")
+        vault.set("+2348012345678", "+234 803 555 1234", "PHONE")
         original = (
             "My name is Godfrey Lebo, my email address is emory@gmail.com, "
-            "call me on +2348065786535. Sign off as Godfrey Lebo."
+            "call me on +2348012345678. Sign off as Godfrey Lebo."
         )
         applied = vault.apply(original)
         assert "Godfrey Lebo" not in applied
