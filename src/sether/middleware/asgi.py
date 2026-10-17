@@ -4,7 +4,8 @@ middleware.
 Redacts incoming textual request bodies and restores outgoing textual response
 bodies, so route handlers never have to think about redaction. Both directions
 buffer the full body (as ``express.json()`` does on the TS side), then redact /
-restore in one pass.
+restore in one pass. Response bodies are restored like ``wrap_httpx`` restores
+them, so JSON is never restored as text.
 
     from fastapi import FastAPI
     from sether import Sether, SetherASGIMiddleware
@@ -20,9 +21,8 @@ from typing import Sequence
 
 from ..detectors.types import Detector
 from ..stream.redact import redact_sync
-from ..stream.restore import restore_sync
 from ..vault.types import Vault
-from ._common import asgi_header, is_textual_content_type, strip_asgi_headers
+from ._common import asgi_header, is_textual_content_type, restore_body, strip_asgi_headers
 
 
 class SetherASGIMiddleware:
@@ -77,7 +77,7 @@ class SetherASGIMiddleware:
         return wrapped
 
     def _restoring_send(self, send):
-        state = {"restore": False, "start": None, "body": b""}
+        state = {"restore": False, "start": None, "content_type": "", "body": b""}
 
         async def wrapped(message):
             mtype = message["type"]
@@ -87,6 +87,7 @@ class SetherASGIMiddleware:
                 if is_textual_content_type(ct):
                     state["restore"] = True
                     state["start"] = message
+                    state["content_type"] = ct
                     return  # defer until the full body is restored
                 await send(message)
                 return
@@ -99,7 +100,8 @@ class SetherASGIMiddleware:
                 if message.get("more_body", False):
                     return
                 try:
-                    restored = restore_sync(state["body"].decode("utf-8"), self.vault).encode("utf-8")
+                    text = state["body"].decode("utf-8")
+                    restored = restore_body(text, state["content_type"], self.vault).encode("utf-8")
                 except UnicodeDecodeError:
                     restored = state["body"]
                 start = state["start"]

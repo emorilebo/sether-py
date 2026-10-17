@@ -9,16 +9,29 @@ Each SSE line is a complete unit by design, so per-line one-shot redaction is
 correct -- the chunk-boundary safe-distance buffering of the plain redact stream
 is not needed here. (For PII that spans multiple SSE lines, concatenate first
 and use the plain redact stream.)
+
+On restore, a ``data:`` payload that parses as JSON (the OpenAI / Anthropic
+chunk format) is restored value by value: only the string values holding a
+token are re-encoded, so an original containing ``"``, ``\\`` or a line break can
+neither change the JSON nor break the SSE framing, and every other byte is kept.
+Object keys are not restored. Any other payload is restored as text, and a line
+break in an original continues it on a new ``data: `` line, so it cannot end
+the line and inject ``event:`` / ``id:`` / ``data:`` fields or a blank line. The
+client joins the data lines with ``\\n``, so CR and CRLF in an original arrive
+as ``\\n``. Each ``data:`` line is handled on its own, so a JSON payload split
+across several ``data:`` lines is restored as text.
 """
 
 from __future__ import annotations
 
+import re
 from typing import AsyncIterable, AsyncIterator, Callable, Iterable, Iterator, Sequence
 
 from ..detectors.types import Detector
 from ..vault.types import Vault
+from ._tokens import TOKEN_RE
 from .redact import redact_sync
-from .restore import restore_sync
+from .restore import RestoreString, restore_json_document, restore_sync
 
 
 class SSEStream:
@@ -62,7 +75,42 @@ def create_sse_redact_stream(detectors: Sequence[Detector], vault: Vault) -> SSE
 
 
 def create_sse_restore_stream(vault: Vault) -> SSEStream:
-    return SSEStream(lambda payload: restore_sync(payload, vault))
+    return _sse_restore_stream(lambda text: restore_sync(text, vault))
+
+
+def restore_sse_text(text: str, restore_string: RestoreString) -> str:
+    """Restore a complete, already-buffered SSE text the way the SSE restore
+    stream does, with ``restore_string`` restoring each decoded value (and, in a
+    text payload, each token). Used for buffered ``text/event-stream`` response
+    bodies."""
+    stream = _sse_restore_stream(restore_string)
+    return stream.feed(text) + stream.finish()
+
+
+def _sse_restore_stream(restore_string: RestoreString) -> SSEStream:
+    return SSEStream(lambda payload: _restore_sse_payload(payload, restore_string))
+
+
+_LINE_BREAK_RE = re.compile(r"\r\n|\r|\n")
+
+
+def _restore_sse_payload(payload: str, restore_string: RestoreString) -> str:
+    """A JSON payload is restored value by value, which escapes line breaks. A
+    text payload is restored token by token, and each line break in an original
+    starts a new data line in the line ending of the stream (a CRLF-framed line
+    keeps its trailing ``\\r`` in the payload). Continuation lines always use
+    ``data: ``, so a leading space in the next part of the original is kept.
+    Without a line break in an original, the output equals restoring the
+    payload as text."""
+    document = restore_json_document(payload, restore_string)
+    if document is not None:
+        return document
+    new_data_line = "\r\ndata: " if payload.endswith("\r") else "\ndata: "
+
+    def _sub(m: "re.Match[str]") -> str:
+        return _LINE_BREAK_RE.sub(lambda _: new_data_line, restore_string(m.group(0)))
+
+    return TOKEN_RE.sub(_sub, payload)
 
 
 def _run_sync(stream: SSEStream, chunks: Iterable[str]) -> Iterator[str]:

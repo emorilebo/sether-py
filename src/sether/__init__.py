@@ -17,7 +17,7 @@ Named for the Hebrew *sether* -- *the hiding place*. Psalm 32:7.
 
 from __future__ import annotations
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 from .audit import (
     DEFAULT_REGULATION_MAPPINGS,
@@ -67,9 +67,12 @@ from .middleware import (
     wrap_openai,
 )
 from .stream import (
+    TOKEN_RE,
+    JsonValue,
     RedactStream,
     RestoreStream,
     SSEStream,
+    UnresolvedTokenError,
     aredact_iter,
     arestore_iter,
     asse_redact_iter,
@@ -81,6 +84,8 @@ from .stream import (
     redact_iter,
     redact_sync,
     restore_iter,
+    restore_json,
+    restore_json_value,
     restore_sync,
     sse_redact_iter,
     sse_restore_iter,
@@ -96,6 +101,11 @@ __all__ = [
     # one-shot + streaming
     "redact_sync",
     "restore_sync",
+    "restore_json",
+    "restore_json_value",
+    "JsonValue",
+    "UnresolvedTokenError",
+    "TOKEN_RE",
     "RedactStream",
     "RestoreStream",
     "create_redact_stream",

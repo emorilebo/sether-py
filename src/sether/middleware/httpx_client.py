@@ -2,7 +2,10 @@
 
 Patches a ``httpx.Client`` or ``httpx.AsyncClient`` so outgoing textual request
 bodies are redacted before they leave the process and textual response bodies
-are restored on the way back. Binary bodies pass through untouched.
+are restored on the way back. Binary bodies pass through untouched. JSON is never
+restored as text: a body that parses as JSON is restored value by value, a
+JSON-typed body that doesn't (NDJSON) line by line, and an event-stream body per
+``data:`` payload.
 
     import httpx
     from sether import Sether, wrap_httpx
@@ -24,9 +27,8 @@ from typing import Sequence
 
 from ..detectors.types import Detector
 from ..stream.redact import redact_sync
-from ..stream.restore import restore_sync
 from ..vault.types import Vault
-from ._common import is_textual_content_type
+from ._common import is_textual_content_type, restore_body
 
 
 def _redact_request(request, detectors: Sequence[Detector], vault: Vault, httpx):
@@ -61,7 +63,7 @@ def _restore_response(response, vault: Vault, httpx):
         text = response.content.decode("utf-8")
     except UnicodeDecodeError:
         return response
-    restored = restore_sync(text, vault).encode("utf-8")
+    restored = restore_body(text, content_type, vault).encode("utf-8")
     headers = httpx.Headers(response.headers)
     # The restored body has a new length and is already decoded; carrying the
     # upstream content-length / content-encoding forward would describe the old

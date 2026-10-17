@@ -77,6 +77,12 @@ back = sether.restore_sync(safe)
 The same `Sether` instance shares its vault between redaction and restoration,
 which is how the round-trip identity is preserved.
 
+> **Security: never call `restore_sync()` on serialized JSON** (tool-call
+> arguments, JSON-mode replies, JSON response bodies). Restore is plain text
+> substitution: an original value containing `"` or `\` can add keys to the
+> document or break it. Use `restore_json` / `restore_json_value`, see
+> [Never restore serialized JSON as text](#never-restore-serialized-json-as-text).
+
 ### Streaming (sync and async)
 
 ```python
@@ -104,6 +110,92 @@ back up to `max(safe_distance_bytes * 4, 8192)` bytes so it is never emitted
 partially across a boundary. For values larger than that bound, raise
 `safe_distance_bytes` or use `redact_sync` on complete payloads. This round-trip
 identity is verified by property-based tests over 60 random chunk partitions.
+
+---
+
+## Never restore serialized JSON as text
+
+`restore_sync`, the restore streams and `sether.restore_sync()` are **plain
+text substitution**: each original value is inserted exactly as it was,
+unescaped. If the text is serialized JSON, such as LLM tool-call arguments, a
+JSON-mode reply or a JSON response body, an original containing `"` or `\`
+stops being data inside a string and becomes part of the document:
+
+```python
+# Tool-call arguments from the model reference a token...
+args = '{"to": "<EMAIL_...>", "subject": "Hello <NAME_...>"}'
+# ...whose original is:  Alice", "bcc": "attacker@example.com
+json.loads(restore_sync(args, vault))
+# -> {'to': 'bob@example.com', 'subject': 'Hello Alice', 'bcc': 'attacker@example.com'}
+```
+
+Built-in detectors can capture a trailing backslash (`password: hunter2\`),
+which breaks the document the same way; custom detectors and vaults filled from
+other systems can carry any character. Restore JSON value by value instead:
+
+```python
+from sether import restore_json, restore_json_value
+
+# Serialized JSON in, serialized JSON out: each string value is restored and re-escaped.
+safe_args = restore_json(tool_call.function.arguments, vault, strict=True)
+# or, on the facade: sether.restore_json(tool_call.function.arguments, strict=True)
+
+# Already parsed, e.g. an Anthropic tool_use block's `input`.
+tool_input = restore_json_value(block.input, vault, strict=True)
+```
+
+- Object keys are never restored. Invalid JSON raises `json.JSONDecodeError`;
+  there is no fallback to text replacement.
+- One level at a time: a string value that itself holds serialized JSON is
+  restored as plain text, so parse and restore it separately.
+- `restore_json` re-serializes compactly; input formatting is not kept.
+- `strict=True` (also accepted by `restore_sync`) raises `UnresolvedTokenError`
+  when anything token-shaped would be left in place: an invented or expired
+  token, a case-altered copy such as `<email_...>`, or a token in a key. Its
+  `tokens` attribute lists them; restored originals are never included.
+  Without `strict`, those pass through silently.
+- Strict mode is not authorization. A model can still put a real token in the
+  wrong field (the customer's address in `bcc`), so validate tool arguments
+  before acting on them.
+- `TOKEN_RE` is exported if you need to scan for tokens yourself.
+
+**Sether's own restore paths restore JSON value by value.** They change only
+the string values that hold a token and re-encode just those, so every other
+byte is kept (formatting, key order, escapes and numbers). Object keys are
+never restored.
+
+- `sse_restore_iter` / `create_sse_restore_stream`: a `data:` payload that
+  parses as JSON (OpenAI and Anthropic chunks) is restored value by value, so
+  an original containing `"`, `\` or a line break can't change the JSON or
+  break the SSE framing. Other payloads (`[DONE]`, plain text) are restored as
+  text, and a line break in an original continues it on a new `data: ` line
+  (the client receives it as `\n`). Each `data:` line is handled on its own, so
+  a JSON payload split across several `data:` lines is restored as text.
+- `wrap_httpx`, `SetherASGIMiddleware` and `SetherWSGIMiddleware`: an
+  `event-stream` body is restored per `data:` payload as above. A body that
+  parses as JSON is restored value by value, a JSON-typed body that doesn't
+  (NDJSON, JSON Lines) line by line, and any other text body as text.
+- `wrap_openai` / `wrap_anthropic`: when the request asks for JSON output
+  (`response_format` `json_object` / `json_schema`, or Anthropic
+  `output_config.format` / `output_format` with `json_schema`), the reply's
+  content is restored value by value, and left tokenized if it isn't valid
+  JSON. Streamed JSON-mode deltas are fragments of a document, so they stay
+  tokenized: join them and call `restore_json`. Tool-call arguments stay
+  tokenized by default. Pass `restore_tool_arguments=True` to restore
+  non-streaming `tool_calls[].function.arguments` and `tool_use.input` value by
+  value, and validate them before acting on them.
+
+What is still restored as text:
+
+- **JSON-mode output streamed over SSE.** `sse_restore_iter` (and the
+  middlewares on an event-stream body) keeps each chunk valid, but the
+  `delta.content` fragments join into a second JSON document the stream can't
+  see, so an original lands in that document unescaped. Don't SSE-restore
+  JSON-mode streams: collect the tokenized fragments and call `restore_json` on
+  the assembled text.
+- `restore_sync`, the restore streams and `sether.restore_sync()`, by design.
+- `AliasVault.restore()` swaps decoys back by plain substitution too. On JSON,
+  apply it to each parsed string value, never to the serialized document.
 
 ---
 
@@ -314,6 +406,11 @@ These match the TypeScript package's documented limits:
 - **Very large whitespace-free values split across chunk boundaries** are held
   back only up to `max(safe_distance_bytes * 4, 8192)` bytes. Raise
   `safe_distance_bytes` or use `redact_sync` on complete payloads.
+- **Restore is text substitution.** `restore_sync` and the restore streams
+  insert originals unescaped. The SSE, httpx, ASGI, WSGI and SDK-wrapper paths
+  restore JSON value by value, except JSON-mode output streamed over SSE. Use
+  `restore_json` for your own JSON; see
+  [Never restore serialized JSON as text](#never-restore-serialized-json-as-text).
 
 ---
 
@@ -323,7 +420,7 @@ This port reproduces the audited TypeScript engine 1:1: the same detector
 regexes (compiled with `re.ASCII` so `\b` / `\d` stay ASCII-only as in JS), the
 same Luhn / mod-97 / SSA validation, the same overlap resolution (longest match
 wins), the same `<TYPE_uuid>` token format, and the same safe-distance and
-long-value streaming guards. 76 tests cover detectors, vault, streaming
+long-value streaming guards. 183 tests cover detectors, vault, streaming
 (including a property-based chunk-partition round-trip), SSE, audit, and all
 five integrations.
 

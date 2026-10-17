@@ -16,6 +16,7 @@ from .stream.restore import (
     RestoreStream,
     arestore_iter,
     restore_iter,
+    restore_json,
     restore_sync,
 )
 from .vault.memory import MemoryVault
@@ -52,8 +53,13 @@ class Sether:
     def redact_sync(self, text: str) -> str:
         return redact_sync(text, self._detectors, self._vault)
 
-    def restore_sync(self, text: str) -> str:
-        return restore_sync(text, self._vault)
+    def restore_sync(self, text: str, *, strict: bool = False) -> str:
+        return restore_sync(text, self._vault, strict=strict)
+
+    def restore_json(self, text: str, *, strict: bool = False) -> str:
+        """Restore a serialized JSON document (e.g. tool-call arguments) value
+        by value. Use this, never :meth:`restore_sync`, on JSON text."""
+        return restore_json(text, self._vault, strict=strict)
 
     # --- synchronous streaming -------------------------------------------
 

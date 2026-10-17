@@ -9,10 +9,14 @@ from .redact import (
     redact_sync,
 )
 from .restore import (
+    JsonValue,
     RestoreStream,
+    UnresolvedTokenError,
     arestore_iter,
     create_restore_stream,
     restore_iter,
+    restore_json,
+    restore_json_value,
     restore_sync,
 )
 from .sse import (
@@ -39,6 +43,10 @@ __all__ = [
     "restore_iter",
     "arestore_iter",
     "restore_sync",
+    "restore_json",
+    "restore_json_value",
+    "JsonValue",
+    "UnresolvedTokenError",
     "SSEStream",
     "create_sse_redact_stream",
     "create_sse_restore_stream",

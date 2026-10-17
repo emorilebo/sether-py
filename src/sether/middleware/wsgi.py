@@ -2,7 +2,8 @@
 
 Redacts incoming textual request bodies and restores outgoing textual response
 bodies. The request body and the response body are each buffered fully, then
-redacted / restored in one pass.
+redacted / restored in one pass. Response bodies are restored like
+``wrap_httpx`` restores them, so JSON is never restored as text.
 
     from flask import Flask
     from sether import Sether, SetherWSGIMiddleware
@@ -19,9 +20,8 @@ from typing import Sequence
 
 from ..detectors.types import Detector
 from ..stream.redact import redact_sync
-from ..stream.restore import restore_sync
 from ..vault.types import Vault
-from ._common import is_textual_content_type
+from ._common import is_textual_content_type, restore_body
 
 
 def _header_value(headers, name: str) -> str:
@@ -66,9 +66,10 @@ class SetherWSGIMiddleware:
                 close()
 
         headers = captured["headers"]
-        if is_textual_content_type(_header_value(headers, "content-type")):
+        content_type = _header_value(headers, "content-type")
+        if is_textual_content_type(content_type):
             try:
-                body = restore_sync(body.decode("utf-8"), self.vault).encode("utf-8")
+                body = restore_body(body.decode("utf-8"), content_type, self.vault).encode("utf-8")
             except UnicodeDecodeError:
                 pass
 

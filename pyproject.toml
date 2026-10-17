@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sether"
-version = "0.3.0"
+version = "0.4.0"
 description = "Streaming PII redaction for AI applications. The hiding place for sensitive data flowing into LLMs. Secrets pack, SSE-aware streaming, audit events, drop-in middlewares for httpx / ASGI / WSGI / OpenAI / Anthropic."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -42,12 +42,12 @@ all = ["openai>=1.0", "anthropic>=0.39", "httpx>=0.27"]
 dev = ["pytest>=7", "phonenumbers>=8.13", "httpx>=0.27"]
 
 [project.urls]
-Homepage = "https://setherai.vercel.app"
-Documentation = "https://setherai.vercel.app/docs/python"
-Sandbox = "https://setherai.vercel.app/#sandbox"
-Repository = "https://github.com/raeven-co/sether"
-Issues = "https://github.com/raeven-co/sether/issues"
-Changelog = "https://github.com/raeven-co/sether/blob/main/CHANGELOG.md"
+Homepage = "https://sether.raevenmarket.com.ng"
+Documentation = "https://sether.raevenmarket.com.ng/docs/python"
+Sandbox = "https://sether.raevenmarket.com.ng/sandbox"
+Repository = "https://github.com/emorilebo/sether-py"
+Issues = "https://github.com/emorilebo/sether-py/issues"
+Changelog = "https://github.com/emorilebo/sether-py/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]
