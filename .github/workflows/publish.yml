@@ -6,7 +6,7 @@ name: Publish
 #
 # One-time setup (see PUBLISHING.md):
 #   PyPI -> your project -> Publishing -> add a "Trusted Publisher":
-#     Owner:           raeven-co        (your GitHub org/user)
+#     Owner:           emorilebo        (the GitHub user that owns this repo)
 #     Repository:      sether-py        (the repo holding this package)
 #     Workflow name:   publish.yml
 #     Environment:     pypi

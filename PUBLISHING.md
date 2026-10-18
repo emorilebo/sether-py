@@ -158,26 +158,16 @@ Check the project page renders the README and the right links:
 
 ---
 
-## 6. Marketing site + docs (Vercel)
+## 6. Marketing site + docs
 
 The Python package points at the same marketing site as the npm package:
 
-- `Homepage` → <https://setherai.vercel.app>
-- `Documentation` → <https://setherai.vercel.app/docs/python>
+- `Homepage` → <https://sether.raevenmarket.com.ng>
+- `Documentation` → <https://sether.raevenmarket.com.ng/docs/python>
 
-Those URLs are served by `raeven/sether-marketing` (Next.js on Vercel). The
-Python docs page (`/docs/python`) and the homepage `pip install sether` mentions
-were added in this change. To ship them:
-
-```bash
-cd raeven/sether-marketing
-npm install            # if node_modules is absent
-npm run build          # verify it compiles
-```
-
-Then deploy as you normally do (push to the branch Vercel auto-deploys, or
-`vercel --prod`). Once live, `setherai.vercel.app/docs/python` is the canonical
-docs URL referenced from PyPI.
+Those URLs are served by `raeven/sether-web`. The old Vercel deployment
+(`raeven/sether-marketing`, `setherai.vercel.app`) now only 308-redirects its
+public pages there, so never point package metadata at it.
 
 ---
 
