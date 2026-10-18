@@ -3,6 +3,19 @@
 All notable changes to the Python `sether` package are documented here. This
 package follows [Semantic Versioning](https://semver.org/).
 
+## [0.4.1] - 2026-10-18
+
+Documentation only. No code changes; the published API and behaviour are identical to 0.4.0.
+
+- **README rewritten.** It now has:
+  - animated illustrations of the engine
+  - a "why this exists, and why now" section, where every figure links to its source
+  - a four-step explanation of how the engine works, and the Sether family of tools
+- **Corrections:**
+  - the parity note no longer calls the TypeScript engine "audited"
+  - the NER note points at the early TypeScript-only `@raeven-co/sether-ner`
+- **Release process.** Releases are published from CI through PyPI Trusted Publishing; no API token is stored. 0.4.0 was the first release published this way.
+
 ## [0.4.0] - 2026-10-17
 
 Security fix. The new API is additive; Sether's own SSE, httpx, ASGI, WSGI and

@@ -17,7 +17,7 @@ Named for the Hebrew *sether* -- *the hiding place*. Psalm 32:7.
 
 from __future__ import annotations
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 from .audit import (
     DEFAULT_REGULATION_MAPPINGS,
