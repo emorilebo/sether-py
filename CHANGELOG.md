@@ -3,6 +3,12 @@
 All notable changes to the Python `sether` package are documented here. This
 package follows [Semantic Versioning](https://semver.org/).
 
+## [0.4.2] - 2026-11-17
+
+Package metadata and links only. No code changes; the published API and behaviour are identical to 0.4.1.
+
+- `Homepage`, `Documentation`, `Sandbox` and every README link now point at <https://sether.ai>, the site's new address.
+
 ## [0.4.1] - 2026-10-18
 
 Documentation only. No code changes; the published API and behaviour are identical to 0.4.0.

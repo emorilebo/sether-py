@@ -162,12 +162,11 @@ Check the project page renders the README and the right links:
 
 The Python package points at the same marketing site as the npm package:
 
-- `Homepage` → <https://sether.raevenmarket.com.ng>
-- `Documentation` → <https://sether.raevenmarket.com.ng/docs/python>
+- `Homepage` → <https://sether.ai>
+- `Documentation` → <https://sether.ai/docs/python>
 
-Those URLs are served by `raeven/sether-web`. The old Vercel deployment
-(`raeven/sether-marketing`, `setherai.vercel.app`) now only 308-redirects its
-public pages there, so never point package metadata at it.
+Those URLs are served by `raeven/sether-web`. Never point package metadata at
+the older hosts (`sether.raevenmarket.com.ng`, `setherai.vercel.app`).
 
 ---
 

@@ -18,7 +18,7 @@ stays on your side, and the library makes no network calls of its own.
 pip install sether
 ```
 
-[Live sandbox](https://sether.raevenmarket.com.ng/sandbox) · [Python docs](https://sether.raevenmarket.com.ng/docs/python) · [TypeScript package](https://www.npmjs.com/package/@raeven-co/sether) · [Changelog](https://github.com/emorilebo/sether-py/blob/main/CHANGELOG.md) · MIT
+[Live sandbox](https://sether.ai/sandbox) · [Python docs](https://sether.ai/docs/python) · [TypeScript package](https://www.npmjs.com/package/@raeven-co/sether) · [Changelog](https://github.com/emorilebo/sether-py/blob/main/CHANGELOG.md) · MIT
 
 > Named for the Hebrew *sether* (סֵתֶר), "the hiding place" (Psalm 32:7).
 > The name is also the spec.
